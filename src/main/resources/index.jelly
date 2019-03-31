@@ -1,0 +1,4 @@
+<?jelly escape-by-default='true'?>
+<div>
+    Allows setting parameter value of specified job's run.
+</div>
