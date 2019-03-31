@@ -1,2 +1,1 @@
-# jenkins-set-parameter-value
-Jenkins SetParameterValue Plugin
+https://wiki.jenkins.io/display/JENKINS/SetParameterValue+Plugin
