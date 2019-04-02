@@ -145,7 +145,8 @@ public class SetParameterValueBuilderTest {
     assertThat("Status is 400", response.getStatusLine().getStatusCode(), equalTo(400));
     String responseStr = EntityUtils.toString(response.getEntity(), Charsets.UTF_8);
     LOGGER.info("testPostCallAbsentJob Response: " + responseStr);
-    jenkins.assertStringContains(responseStr, "\"message\":\"Specified job 'incorrect_job' was not found!\"");
+    jenkins.assertStringContains(responseStr, "\"message\":\""
+        + String.format(Messages.SetParameterValuePlugin_errors_jobNotFound(), "incorrect_job") + "\"");
     client.close();
   }
 

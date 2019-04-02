@@ -107,14 +107,14 @@ public class SetParameterValuePlugin extends Plugin {
       Job job = (Job) jenkins.getItemByFullName(jobStr);
       if (job == null) {
         rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        HttpResponses.errorJSON(String.format("Specified job '%s' was not found!", jobStr))
+        HttpResponses.errorJSON(String.format(Messages.SetParameterValuePlugin_errors_jobNotFound(), jobStr))
           .generateResponse(req, rsp, null);
         return;
       }
       Run run = (Run) job.getBuild(runStr);
       if (run == null) {
         rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        HttpResponses.errorJSON(String.format("Specified job's run '%s' was not found!", runStr))
+        HttpResponses.errorJSON(String.format(Messages.SetParameterValuePlugin_errors_runNotFound(), runStr))
           .generateResponse(req, rsp, null);
         return;
       }
@@ -122,14 +122,14 @@ public class SetParameterValuePlugin extends Plugin {
       ParametersAction pa = run.getAction(ParametersAction.class);
       if (pa == null) {
         rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-        HttpResponses.errorJSON(String.format("Specified job '%s' doesn't have parameters defined!", jobStr))
+        HttpResponses.errorJSON(String.format(Messages.SetParameterValuePlugin_errors_paramsUndefined(), jobStr))
           .generateResponse(req, rsp, null);
         return;
       }
       List<ParameterValue> pvs = pa.getAllParameters();
       List<Parameter> l = req.bindJSONToList(Parameter.class, json.getJSONArray("parameter"));
 
-      // Compare provided against defined
+      // Compare provided against defined parameters
       for (Parameter paramProvided : l) {
         boolean found = false;
         for (ParameterValue paramDefined : pvs) {
@@ -140,7 +140,7 @@ public class SetParameterValuePlugin extends Plugin {
         }
         if (!found) {
           rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-          HttpResponses.errorJSON(String.format("Provided parameter '%s' isn't defined for job '%s'!",
+          HttpResponses.errorJSON(String.format(Messages.SetParameterValuePlugin_errors_paramUndefinedForJob(),
             paramProvided.getName(), jobStr))
             .generateResponse(req, rsp, null);
           return;
