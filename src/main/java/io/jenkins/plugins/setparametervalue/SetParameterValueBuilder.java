@@ -90,7 +90,6 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
     Job<?, ?> jobObj = (Job<?, ?>) Jenkins.get().getItemByFullName(job);
     if (jobObj == null) {
       listener.getLogger().println(String.format("ERROR: Specified job '%s' was not found!", job));
-      //listener.getLogger().flush();
       performrun.setResult(Result.FAILURE);
       return;
     }
@@ -98,7 +97,6 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
     Run<?, ?> runObj = (Run<?, ?>) jobObj.getBuild(run);
     if (runObj == null) {
       listener.getLogger().println(String.format("ERROR: Specified job's run '%s' was not found!", run));
-      //listener.getLogger().flush();
       performrun.setResult(Result.FAILURE);
       return;
     }

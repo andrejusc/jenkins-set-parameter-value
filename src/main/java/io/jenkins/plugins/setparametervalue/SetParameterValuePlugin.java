@@ -86,93 +86,80 @@ public class SetParameterValuePlugin extends Plugin {
   }
 
   /**
-   * Invokes set parameter POST call.
+   * Invokes set parameter value POST call.
    * @param req Request.
    * @param rsp Response.
    * @throws IOException Possible excepttion1.
    * @throws ServletException Possible excepttion2.
    */
   @RequirePOST
-  public void doSetParameter(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
-    LOGGER.info("--- Set parameter TestPlugin req: " + req);
-    LOGGER.info("--- Set parameter TestPlugin contentType: " + req.getContentType());
-    final Jenkins jenkins;
+  public void doSetParameterValue(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    final Jenkins jenkins = Jenkins.get();
+    // Protect from anonymous call 
+    jenkins.checkPermission(Run.UPDATE);
     try {
-      jenkins = Jenkins.get();
-      LOGGER.info("--- Set parameter Jenkins: " + jenkins);
-      Job job1 = (Job) jenkins.getItemByFullName("test0");
-      LOGGER.info("--- Set parameter TestPlugin job: " + job1);
       String reqStr = httpServletRequestToString(req);
-      LOGGER.info("--- Set parameter TestPlugin reqStr: " + reqStr);
-      //      JSONTokener tokener = new JSONTokener(reqStr);
-      //      JSONObject json = req.getSubmittedForm();
       JSONObject json = JSONObject.fromObject(reqStr);
-      LOGGER.info("--- Set parameter TestPlugin json from reqStr: " + json);
-      //      JSONArray ar = json.getJSONArray("parameter");
-      //      LOGGER.info("--- Set parameter TestPlugin ar: " + ar);
-      //      Parameter p = req.bindJSON(Parameter.class, json);
-      List<Parameter> l = req.bindJSONToList(Parameter.class, json.getJSONArray("parameter"));
-      LOGGER.info("--- Set parameter TestPlugin parameter: " + l);
       String jobStr = json.getString("job");
+      String runStr = json.getString("run");
+      LOGGER.info("SetParameterValue for job: " + jobStr
+          + ", and job's run: " + runStr);
       Job job = (Job) jenkins.getItemByFullName(jobStr);
       if (job == null) {
-        LOGGER.info("--- Set parameter TestPlugin job not retrieved!");
-        rsp.setStatus(StaplerResponse.SC_NOT_FOUND);
-        //return HttpResponses.errorJSON("{}");
+        rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        HttpResponses.errorJSON(String.format("Specified job '%s' was not found!", jobStr))
+          .generateResponse(req, rsp, null);
         return;
       }
-      LOGGER.info("--- Set parameter TestPlugin job: " + job);
-      String runStr = json.getString("run");
       Run run = (Run) job.getBuild(runStr);
       if (run == null) {
-        LOGGER.info("--- Set parameter TestPlugin run not retrieved!");
-        rsp.setStatus(StaplerResponse.SC_NOT_FOUND);
-        //return HttpResponses.errorJSON("{}");
+        rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        HttpResponses.errorJSON(String.format("Specified job's run '%s' was not found!", runStr))
+          .generateResponse(req, rsp, null);
         return;
       }
-      LOGGER.info("--- Set parameter TestPlugin run: " + run);
 
-      for (Parameter p : l) {
-        LOGGER.info("--- Set parameter TestPlugin p name: " + p.getName() + ", class: " + p.get_class());
+      ParametersAction pa = run.getAction(ParametersAction.class);
+      if (pa == null) {
+        rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        HttpResponses.errorJSON(String.format("Specified job '%s' doesn't have parameters defined!", jobStr))
+          .generateResponse(req, rsp, null);
+        return;
       }
+      List<ParameterValue> pvs = pa.getAllParameters();
+      List<Parameter> l = req.bindJSONToList(Parameter.class, json.getJSONArray("parameter"));
 
-      for (Parameter p : l) {
-        if ("Foo".contentEquals(p.getName())) {
-          ParameterValue pv = new StringParameterValue(p.getName(), p.getValue());
-          //          ParameterValue pv = new TextParameterValue(p.getName(), p.getValue());
-          Action actionParams = new ParametersAction(pv);
-          run.addOrReplaceAction(actionParams);
-          run.save();
-          break;
+      // Compare provided against defined
+      for (Parameter paramProvided : l) {
+        boolean found = false;
+        for (ParameterValue paramDefined : pvs) {
+          if (paramProvided.getName().equals(paramDefined.getName())) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          HttpResponses.errorJSON(String.format("Provided parameter '%s' isn't defined for job '%s'!",
+            paramProvided.getName(), jobStr))
+            .generateResponse(req, rsp, null);
+          return;
         }
       }
-      // test
-      //String payload = "{}";
-      //rsp.setHeader("Content-Type", "application/json");
-      //rsp.setStatus(StaplerResponse.SC_NOT_FOUND);
-      //rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-      // rsp.getOutputStream().write(payload.getBytes());
-      // rsp.sendError(StaplerResponse.SC_NOT_FOUND);
-      //rsp.getWriter().write(payload);
 
-      //      rsp.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-      //      rsp.addHeader("Allow", "POST");
-      //      rsp.setContentType("text/html");
-      //      PrintWriter w = rsp.getWriter();
-      //      w.println("<html><head><title>POST required</title></head><body>");
-      //      w.println("POST is required for ...<br>");
-      //      w.println("<form method='POST'><input type='submit' value='Try POSTing'></form>");
-      //      w.println("</body></html>");
+      for (Parameter p : l) {
+        ParameterValue pv = new StringParameterValue(p.getName(), p.getValue());
+        //          ParameterValue pv = new TextParameterValue(p.getName(), p.getValue());
+        Action actionParams = new ParametersAction(pv);
+        run.addOrReplaceAction(actionParams);
+        run.save();
+      }
 
-      rsp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-      HttpResponses.errorJSON("some error here").generateResponse(req, rsp, null);
+      rsp.setStatus(HttpServletResponse.SC_OK);
+      HttpResponses.okJSON().generateResponse(req, rsp, null);
     } catch (IllegalStateException e) {
-      LOGGER.info("--- Set parameter exception!");
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE, "Set parameter value exception!", e);
     }
-    //return HttpResponses.errorJSON("some error here");
-    //return HttpResponses.errorWithoutStack(400, "some error");
-    //return HttpResponses.error(400, "abc");
   }
 
   private String httpServletRequestToString(StaplerRequest request) throws IOException {

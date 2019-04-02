@@ -1,5 +1,8 @@
 package io.jenkins.plugins.setparametervalue;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -15,24 +18,17 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.xml.sax.SAXException;
 
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.google.common.base.Charsets;
 
-import hudson.model.Action;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.Label;
 import hudson.model.ParameterDefinition;
-import hudson.model.ParameterValue;
-import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
 import hudson.model.StringParameterDefinition;
-import hudson.model.StringParameterValue;
 import jenkins.model.Jenkins;
 
 public class SetParameterValueBuilderTest {
@@ -65,74 +61,37 @@ public class SetParameterValueBuilderTest {
         project.getBuildersList().get(0));
   }
 
-  @SuppressWarnings({"checkstyle:javadocmethod"})
-  //    @Test
+  @Test
   public void testBuild() throws Exception {
     FreeStyleProject project = jenkins.createFreeStyleProject();
-    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, name, value, job, run);
-    project.getBuildersList().add(builder);
-    LOGGER.info("Project project.getBuildersList(): " + project.getBuildersList());
-    
     ParameterDefinition paramDef = new StringParameterDefinition("Foo", "Foo");
     project.addProperty(new ParametersDefinitionProperty(paramDef));
-    
+    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), "1");
+    project.getBuildersList().add(builder);
+    LOGGER.info("Project project.getBuildersList(): " + project.getBuildersList());
+
     FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
-    jenkins.assertLogContains("SetParameterValue with parameter: " + name, build);
-    
-    LOGGER.info("Project name: " + project.getName() + ", build: " + build.getNumber());
-    LOGGER.info("Jenkins URL: " + jenkins.getURL());
-    String buildUrl = "job/" + project.getName() + "/" + build.getNumber() + "/api/json?pretty=true";
-    String configUrl = "job/" + project.getName() + "/config.xml";
-    LOGGER.info("buildURL: " + buildUrl);
-    LOGGER.info("JSON: " + jenkins.getJSON(buildUrl).getContentAsString());
-    LOGGER.info("configURL: " + configUrl);
-    JenkinsRule.WebClient webClient = jenkins.createWebClient();
-    Page runsPage = null;
-    try {
-      runsPage = webClient.goTo(configUrl, "application/xml");
-    } catch (SAXException e) {
-      // goTo shouldn't be throwing a SAXException for JSON.
-      throw new IllegalStateException("Unexpected SAXException.", e);
-    }
-    WebResponse webResponse = runsPage.getWebResponse();
-    LOGGER.info("Config: " + webResponse.getContentAsString());
+    jenkins.assertLogContains("SetParameterValue with parameter: Foo, job: " + project.getName(), build);
+  }
 
-    ParameterValue pv2 = new StringParameterValue("Foo", "Foo2");
-    Action actionParams2 = new ParametersAction(pv2);
-    build.addOrReplaceAction(actionParams2);
-    build.save();
-    LOGGER.info("JSON2: " + jenkins.getJSON(buildUrl).getContentAsString());
-    
-    //        String paramsUrl = "job/" + project.getName() + "/" + build.getNumber() + "/setParameter";
-    String paramsUrl = "plugin/set-parameter-value/api/json";
-    try {
-      // default content type is "text/html"
-      runsPage = webClient.goTo(paramsUrl, "application/json");
-    } catch (SAXException e) {
-      // goTo shouldn't be throwing a SAXException for JSON.
-      throw new IllegalStateException("Unexpected SAXException.", e);
-    }
-    
-    webResponse = runsPage.getWebResponse();
-    LOGGER.info("Response: " + webResponse.getContentAsString());
+  @Test
+  public void testPostCall() throws Exception {
+    FreeStyleProject project = jenkins.createFreeStyleProject();
+    ParameterDefinition paramDef = new StringParameterDefinition("Foo", "Foo");
+    project.addProperty(new ParametersDefinitionProperty(paramDef));
+    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), "1");
+    project.getBuildersList().add(builder);
 
-    String paramsUrl2 = "plugin/set-parameter-value/setValue";
-    //        webResponse = jenkins.postJSON(paramsUrl2, 
-    //            "{\"parameter\":[{\"_class\" : \"hudson.model.StringParameterValue\",
-    //            + \"name\":\"Foo\", \"value\":\"Foo3\"}, {\"name\":\"Foo2\", \"value\":\"Foo22\"}], "
-    //            + "\"job\":\"" + project.getName() + "\", " 
-    //            + "\"run\":\"" + build.getNumber() + "\"}");
-    //        LOGGER.info("Response2: " + webResponse.getContentAsString() + ", status: "
-    //            + webResponse.getStatusCode());
-    //        LOGGER.info("JSON3: " + jenkins.getJSON(buildURL).getContentAsString());
-    
+    FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
+
+    String setValueUrl = "plugin/set-parameter-value/setParameterValue";
     String payload = 
         "{\"parameter\":[{\"_class\" : \"hudson.model.StringParameterValue\", "
-        + "\"name\":\"Foo\", \"value\":\"Foo3\"}, {\"name\":\"Foo2\", \"value\":\"Foo22\"}], "
+        + "\"name\":\"Foo\", \"value\":\"Foo3\"}], "
         + "\"job\":\"" + project.getName() + "\", " 
         + "\"run\":\"" + build.getNumber() + "\"}";
 
-    HttpPost httpPost = new HttpPost(jenkins.getURL().toExternalForm() + paramsUrl2);
+    HttpPost httpPost = new HttpPost(jenkins.getURL().toExternalForm() + setValueUrl);
 
     StringEntity entity = new StringEntity(payload);
     httpPost.setEntity(entity);
@@ -144,11 +103,49 @@ public class SetParameterValueBuilderTest {
 
     CloseableHttpClient client = HttpClients.createDefault();
     CloseableHttpResponse response = client.execute(httpPost);
-    //assertThat(response.getStatusLine().getStatusCode(), equalTo(200));
-    int statusCode = response.getStatusLine().getStatusCode();
-    LOGGER.info("Response2: " + EntityUtils.toString(response.getEntity(), Charsets.UTF_8)
-        + ", status: " + statusCode);
-    LOGGER.info("JSON3: " + jenkins.getJSON(buildUrl).getContentAsString());
+    assertThat("Status is 200", response.getStatusLine().getStatusCode(), equalTo(200));
+    LOGGER.info("testPostCall Response: " + EntityUtils.toString(response.getEntity(), Charsets.UTF_8));
+    String buildUrlPretty = "job/" + project.getName() + "/" + build.getNumber() + "/api/json?pretty=true";
+    LOGGER.info("testPostCall build JSON: " + jenkins.getJSON(buildUrlPretty).getContentAsString());
+    String buildUrl = "job/" + project.getName() + "/" + build.getNumber() + "/api/json";
+    jenkins.assertStringContains(jenkins.getJSON(buildUrl).getContentAsString(),
+        "\"_class\":\"hudson.model.StringParameterValue\",\"name\":\"Foo\",\"value\":\"Foo3\"");
+    client.close();
+  }
+
+  @Test
+  public void testPostCallAbsentJob() throws Exception {
+    FreeStyleProject project = jenkins.createFreeStyleProject();
+    ParameterDefinition paramDef = new StringParameterDefinition("Foo", "Foo");
+    project.addProperty(new ParametersDefinitionProperty(paramDef));
+    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), "1");
+    project.getBuildersList().add(builder);
+
+    FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
+
+    String setValueUrl = "plugin/set-parameter-value/setParameterValue";
+    String payload = 
+        "{\"parameter\":[{\"_class\" : \"hudson.model.StringParameterValue\", "
+        + "\"name\":\"Foo\", \"value\":\"Foo3\"}], "
+        + "\"job\":\"" + "incorrect_job" + "\", " 
+        + "\"run\":\"" + build.getNumber() + "\"}";
+
+    HttpPost httpPost = new HttpPost(jenkins.getURL().toExternalForm() + setValueUrl);
+
+    StringEntity entity = new StringEntity(payload);
+    httpPost.setEntity(entity);
+    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/json; charset=UTF-8");
+
+    NameValuePair crumb = getCrumbHeaderNvp();
+    httpPost.setHeader(crumb.getName(), crumb.getValue());
+    LOGGER.info("crumb.getName(): " + crumb.getName() + ", crumb.getValue(): " + crumb.getValue());
+
+    CloseableHttpClient client = HttpClients.createDefault();
+    CloseableHttpResponse response = client.execute(httpPost);
+    assertThat("Status is 400", response.getStatusLine().getStatusCode(), equalTo(400));
+    String responseStr = EntityUtils.toString(response.getEntity(), Charsets.UTF_8);
+    LOGGER.info("testPostCallAbsentJob Response: " + responseStr);
+    jenkins.assertStringContains(responseStr, "\"message\":\"Specified job 'incorrect_job' was not found!\"");
     client.close();
   }
 
