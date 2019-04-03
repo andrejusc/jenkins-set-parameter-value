@@ -24,13 +24,23 @@ import com.google.common.base.Charsets;
 
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.Hudson;
 import hudson.model.Label;
 import hudson.model.ParameterDefinition;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
+import hudson.model.Run;
 import hudson.model.StringParameterDefinition;
+import hudson.security.HudsonPrivateSecurityRealm;
+import hudson.security.ProjectMatrixAuthorizationStrategy;
 import jenkins.model.Jenkins;
 
+/**
+ * Test cases to test REST POST calls as well as scripted pipeline.
+ * 
+ * @author Andrejus Chaliapinas
+ *
+ */
 public class SetParameterValueBuilderTest {
 
   private static Logger LOGGER = LogManager.getLogger();
@@ -147,6 +157,52 @@ public class SetParameterValueBuilderTest {
     LOGGER.info("testPostCallAbsentJob Response: " + responseStr);
     jenkins.assertStringContains(responseStr, "\"message\":\""
         + String.format(Messages.SetParameterValuePlugin_errors_jobNotFound(), "incorrect_job") + "\"");
+    client.close();
+  }
+
+  @Test
+  public void testPostCallAnonymousFailureUnderEffectiveSecurity() throws Exception {
+    HudsonPrivateSecurityRealm realm = new HudsonPrivateSecurityRealm(false, false, null);
+    realm.createAccount("alice", "alice");
+    jenkins.jenkins.setSecurityRealm(realm);
+
+    ProjectMatrixAuthorizationStrategy as = new ProjectMatrixAuthorizationStrategy();
+    as.add(Hudson.READ, "anonymous");
+    as.add(Run.UPDATE, "authenticated");
+    jenkins.jenkins.setAuthorizationStrategy(as);
+
+    FreeStyleProject project = jenkins.createFreeStyleProject();
+    ParameterDefinition paramDef = new StringParameterDefinition("Foo", "Foo");
+    project.addProperty(new ParametersDefinitionProperty(paramDef));
+    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), "1");
+    project.getBuildersList().add(builder);
+
+    FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
+
+    String setValueUrl = "plugin/set-parameter-value/setParameterValue";
+    String payload = 
+        "{\"parameter\":[{\"_class\" : \"hudson.model.StringParameterValue\", "
+        + "\"name\":\"Foo\", \"value\":\"Foo3\"}], "
+        + "\"job\":\"" + project.getName() + "\", " 
+        + "\"run\":\"" + build.getNumber() + "\"}";
+
+    HttpPost httpPost = new HttpPost(jenkins.getURL().toExternalForm() + setValueUrl);
+
+    StringEntity entity = new StringEntity(payload);
+    httpPost.setEntity(entity);
+    httpPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/json; charset=UTF-8");
+
+    NameValuePair crumb = getCrumbHeaderNvp();
+    httpPost.setHeader(crumb.getName(), crumb.getValue());
+    LOGGER.info("crumb.getName(): " + crumb.getName() + ", crumb.getValue(): " + crumb.getValue());
+
+    CloseableHttpClient client = HttpClients.createDefault();
+    CloseableHttpResponse response = client.execute(httpPost);
+    assertThat("Status is 200", response.getStatusLine().getStatusCode(), equalTo(403));
+    String responseStr = EntityUtils.toString(response.getEntity(), Charsets.UTF_8);
+    LOGGER.info("testPostCallWithEffectiveSecurity Response: " + responseStr);
+    jenkins.assertStringContains(responseStr,
+        "Permission you need to have (but didn't): hudson.model.Run.Update");
     client.close();
   }
 
