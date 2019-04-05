@@ -13,13 +13,11 @@ import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.AbstractProject;
-import hudson.model.Action;
 import hudson.model.Job;
 import hudson.model.ParameterValue;
 import hudson.model.ParametersAction;
 import hudson.model.Result;
 import hudson.model.Run;
-import hudson.model.StringParameterValue;
 import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -28,48 +26,34 @@ import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 
 /**
- * Builder to expose set parameter value functionality into pipeline scripting.
+ * Builder to expose get parameter value functionality into pipeline scripting.
  * 
  * @author Andrejus Chaliapinas
  *
  */
-public class SetParameterValueBuilder extends Builder implements SimpleBuildStep {
+public class GetParameterValueBuilder extends Builder implements SimpleBuildStep {
 
-  @SuppressWarnings({"checkstyle:membername"})
-  private final String _class;
   private final String name;
-  private final String value;
   private final String job;
   private final String run;
+  private final Object list;
 
   /**
    * Default ctor.
-   * @param _class Class name.
    * @param name Parameter name.
-   * @param value Parameter value.
    * @param job Job.
    * @param run Run.
    */
-  @SuppressWarnings({"checkstyle:parametername"})
   @DataBoundConstructor
-  public SetParameterValueBuilder(String _class, String name, String value, String job, String run) {
-    this._class = _class;
+  public GetParameterValueBuilder(String name, String job, String run, Object list) {
     this.name = name;
-    this.value = value;
     this.job = job;
     this.run = run;
-  }
-
-  public String get_class() {
-    return _class;
+    this.list = list;
   }
 
   public String getName() {
     return name;
-  }
-
-  public String getValue() {
-    return value;
   }
 
   public String getJob() {
@@ -80,11 +64,17 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
     return run;
   }
 
+  public Object getList() {
+    System.out.println("getList: " + list);
+    return list;
+  }
+
   @Override
   public void perform(Run<?, ?> performrun, FilePath workspace, Launcher launcher, TaskListener listener)
       throws InterruptedException, IOException {
-    listener.getLogger().println("SetParameterValue with parameter: " + name + ", job: " + job
+    listener.getLogger().println("GetParameterValue with parameter: " + name + ", job: " + job
         + ", and job's run: " + run);
+    listener.getLogger().println("list: " + list + (list != null ? list.getClass() : "null"));
     listener.getLogger().println("performrun: " + performrun);
 
     Job<?, ?> jobObj = (Job<?, ?>) Jenkins.get().getItemByFullName(job);
@@ -101,18 +91,33 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
       return;
     }
     listener.getLogger().println("runObj: " + runObj);
-    ParameterValue pv = new StringParameterValue(name, value);
-    Action actionParams = new ParametersAction(pv);
-    runObj.addOrReplaceAction(actionParams);
-    runObj.save();
     
+    if (list == null) {
+      listener.getLogger().println("ERROR: Specified list to return value to was null!");
+      performrun.setResult(Result.FAILURE);
+      return;
+    }
     List<ParametersAction> l = runObj.getActions(ParametersAction.class);
-    for (ParametersAction p : l) {
-      listener.getLogger().println("p: " + p.getParameter(name));
+    boolean found = false;
+    for (ParametersAction pa : l) {
+      ParameterValue pv = pa.getParameter(name);
+      //listener.getLogger().println("name: " + name + ", pv.getName(): " + pv.getName());
+      if (name.equals(pv.getName())) {
+        //listener.getLogger().println("list adding value: " + pv.getValue().toString());
+        ((List) list).add(pv.getValue().toString());
+        //listener.getLogger().println("list size: " + ((List) list).size());
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      listener.getLogger().println(String.format("ERROR: Specified parameter '%s' was not found!", name));
+      performrun.setResult(Result.FAILURE);
+      return;
     }
   }
 
-  @Symbol("setParameterValue")
+  @Symbol("getParameterValue")
   @Extension
   public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 
@@ -175,7 +180,5 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
     public String getDisplayName() {
       return Messages.SetParameterValueBuilder_DescriptorImpl_DisplayName();
     }
-
   }
-
 }
