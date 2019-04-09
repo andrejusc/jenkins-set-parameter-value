@@ -102,7 +102,7 @@ public class GetParameterValueBuilder extends Builder implements SimpleBuildStep
     for (ParametersAction pa : l) {
       ParameterValue pv = pa.getParameter(name);
       //listener.getLogger().println("name: " + name + ", pv.getName(): " + pv.getName());
-      if (name.equals(pv.getName())) {
+      if (pv != null && name.equals(pv.getName())) {
         //listener.getLogger().println("list adding value: " + pv.getValue().toString());
         ((List) list).add(pv.getValue().toString());
         //listener.getLogger().println("list size: " + ((List) list).size());
