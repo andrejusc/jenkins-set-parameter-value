@@ -51,7 +51,7 @@ public class SetParameterValuePlugin extends Plugin {
   @Override
   public void postInitialize() throws Exception {
     if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("--- postInitialize");
+      LOGGER.finest("postInitialize");
     }
     super.postInitialize();
   }
@@ -59,7 +59,7 @@ public class SetParameterValuePlugin extends Plugin {
   @Override
   protected XmlFile getConfigXml() {
     if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("--- getConfigXml");
+      LOGGER.finest("getConfigXml");
     }
     return super.getConfigXml();
   }
@@ -67,7 +67,7 @@ public class SetParameterValuePlugin extends Plugin {
   @Override
   public void setServletContext(ServletContext context) {
     if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("--- setServletContext: " + context);
+      LOGGER.finest("setServletContext: " + context);
     }
     super.setServletContext(context);
   }
@@ -75,14 +75,14 @@ public class SetParameterValuePlugin extends Plugin {
   @Override
   public PluginWrapper getWrapper() {
     if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.finest("--- getWrapper");
+      LOGGER.finest("getWrapper");
     }
     return super.getWrapper();
   }
 
   @Exported
   public String getInformation() {
-    return "some string";
+    return "Plugin information";
   }
 
   /**

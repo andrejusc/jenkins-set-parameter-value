@@ -30,7 +30,7 @@ public class GetParameterValueBuilderTest {
 
   final String name = "Foo";
   final String job = "test-scripted-pipeline";
-  final String run = "1";
+  final int run = 1;
 
   @Test
   public void testGetScriptedPipelineMultiline() throws Exception {
@@ -47,7 +47,7 @@ public class GetParameterValueBuilderTest {
             + "  getParameterValue(\n"
             +    "'name' : '" + name + "',\n"
             +    "'job' : '" + job + "',\n"
-            +    "'run' : '" + run + "',\n"
+            +    "'run' : " + run + ",\n"
             +    "'list' : valueList\n"
             +    ")\n"
             +   "def retValue = valueList.get(0).toString()\n"
@@ -78,7 +78,7 @@ public class GetParameterValueBuilderTest {
             + "  getParameterValue(\n"
             +    "'name' : '" + name + "',\n"
             +    "'job' : '" + incorrectJob + "',\n"
-            +    "'run' : '" + run + "',\n"
+            +    "'run' : " + run + ",\n"
             +    "'list' : valueList\n"
             +    ")\n"
             +   "def retValue = valueList.get(0).toString()\n"
@@ -99,7 +99,7 @@ public class GetParameterValueBuilderTest {
     ParameterDefinition paramDef = new StringParameterDefinition(name, "Foo1");
     jobObj.addProperty(new ParametersDefinitionProperty(paramDef));
 
-    String incorrectRun = "incorrect_run";
+    int incorrectRun = 0;
     String pipelineScript
             = "node {\n"
             +   "// Here need to use such constructor due to presence in whitelist of only applicable signature\n"
@@ -107,7 +107,7 @@ public class GetParameterValueBuilderTest {
             + "  getParameterValue(\n"
             +    "'name' : '" + name + "',\n"
             +    "'job' : '" + job + "',\n"
-            +    "'run' : '" + incorrectRun + "',\n"
+            +    "'run' : " + incorrectRun + ",\n"
             +    "'list' : valueList\n"
             +    ")\n"
             +   "def retValue = valueList.get(0).toString()\n"
@@ -136,7 +136,7 @@ public class GetParameterValueBuilderTest {
             + "  getParameterValue(\n"
             +    "'name' : '" + incorrectParameter + "',\n"
             +    "'job' : '" + job + "',\n"
-            +    "'run' : '" + run + "',\n"
+            +    "'run' : " + run + ",\n"
             +    "'list' : valueList\n"
             +    ")\n"
             +   "def retValue = valueList.get(0).toString()\n"

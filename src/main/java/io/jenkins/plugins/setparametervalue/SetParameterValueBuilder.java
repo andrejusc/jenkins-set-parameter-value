@@ -40,7 +40,10 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
   private final String name;
   private final String value;
   private final String job;
-  private final String run;
+  private final int run;
+
+  // TODO: expose later into JSON
+  private boolean debug;
 
   /**
    * Default ctor.
@@ -52,7 +55,7 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
    */
   @SuppressWarnings({"checkstyle:parametername"})
   @DataBoundConstructor
-  public SetParameterValueBuilder(String _class, String name, String value, String job, String run) {
+  public SetParameterValueBuilder(String _class, String name, String value, String job, int run) {
     this._class = _class;
     this.name = name;
     this.value = value;
@@ -76,7 +79,7 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
     return job;
   }
 
-  public String getRun() {
+  public int getRun() {
     return run;
   }
 
@@ -85,7 +88,9 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
       throws InterruptedException, IOException {
     listener.getLogger().println("SetParameterValue with parameter: " + name + ", job: " + job
         + ", and job's run: " + run);
-    listener.getLogger().println("performrun: " + performrun);
+    if (debug) {
+      listener.getLogger().println("performrun: " + performrun);
+    }
 
     Job<?, ?> jobObj = (Job<?, ?>) Jenkins.get().getItemByFullName(job);
     if (jobObj == null) {
@@ -93,22 +98,31 @@ public class SetParameterValueBuilder extends Builder implements SimpleBuildStep
       performrun.setResult(Result.FAILURE);
       return;
     }
-    listener.getLogger().println("jobObj: " + jobObj);
-    Run<?, ?> runObj = (Run<?, ?>) jobObj.getBuild(run);
+    if (debug) {
+      listener.getLogger().println("jobObj: " + jobObj);
+    }
+    Run<?, ?> runObj = (Run<?, ?>) jobObj.getBuild(String.valueOf(run));
     if (runObj == null) {
       listener.getLogger().println(String.format("ERROR: Specified job's run '%s' was not found!", run));
       performrun.setResult(Result.FAILURE);
       return;
     }
-    listener.getLogger().println("runObj: " + runObj);
+    if (debug) {
+      listener.getLogger().println("runObj: " + runObj);
+    }
     ParameterValue pv = new StringParameterValue(name, value);
+    // At the moment to prevent UI to show null in run parameters area
+    // TODO: figure later if there is other way
+    pv.setDescription("");
     Action actionParams = new ParametersAction(pv);
     runObj.addOrReplaceAction(actionParams);
     runObj.save();
     
-    List<ParametersAction> l = runObj.getActions(ParametersAction.class);
-    for (ParametersAction p : l) {
-      listener.getLogger().println("p: " + p.getParameter(name));
+    if (debug) {
+      List<ParametersAction> l = runObj.getActions(ParametersAction.class);
+      for (ParametersAction p : l) {
+        listener.getLogger().println("p: " + p.getParameter(name));
+      }
     }
   }
 

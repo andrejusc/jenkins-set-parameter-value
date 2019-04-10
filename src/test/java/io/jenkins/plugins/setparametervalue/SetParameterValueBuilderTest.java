@@ -53,7 +53,7 @@ public class SetParameterValueBuilderTest {
   final String name = "paramname";
   final String value = "paramvalue";
   final String job = "test-scripted-pipeline";
-  final String run = "1";
+  final int run = 1;
 
   @Test
   public void testConfigRoundtrip() throws Exception {
@@ -76,7 +76,7 @@ public class SetParameterValueBuilderTest {
     FreeStyleProject project = jenkins.createFreeStyleProject();
     ParameterDefinition paramDef = new StringParameterDefinition("Foo", "Foo");
     project.addProperty(new ParametersDefinitionProperty(paramDef));
-    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), "1");
+    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), 1);
     project.getBuildersList().add(builder);
     LOGGER.info("Project project.getBuildersList(): " + project.getBuildersList());
 
@@ -89,7 +89,7 @@ public class SetParameterValueBuilderTest {
     FreeStyleProject project = jenkins.createFreeStyleProject();
     ParameterDefinition paramDef = new StringParameterDefinition("Foo", "Foo");
     project.addProperty(new ParametersDefinitionProperty(paramDef));
-    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), "1");
+    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), 1);
     project.getBuildersList().add(builder);
 
     FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
@@ -128,7 +128,7 @@ public class SetParameterValueBuilderTest {
     FreeStyleProject project = jenkins.createFreeStyleProject();
     ParameterDefinition paramDef = new StringParameterDefinition("Foo", "Foo");
     project.addProperty(new ParametersDefinitionProperty(paramDef));
-    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), "1");
+    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), 1);
     project.getBuildersList().add(builder);
 
     FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
@@ -174,7 +174,7 @@ public class SetParameterValueBuilderTest {
     FreeStyleProject project = jenkins.createFreeStyleProject();
     ParameterDefinition paramDef = new StringParameterDefinition("Foo", "Foo");
     project.addProperty(new ParametersDefinitionProperty(paramDef));
-    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), "1");
+    SetParameterValueBuilder builder = new SetParameterValueBuilder(null, "Foo", "Foo2", project.getName(), 1);
     project.getBuildersList().add(builder);
 
     FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
@@ -221,7 +221,7 @@ public class SetParameterValueBuilderTest {
             +    "'name' : 'Foo',"
             +    "'value' : 'Foo3',"
             +    "'job' : '" + job + "',"
-            +    "'run' : '" + run + "'\n"
+            +    "'run' : " + run + "\n"
             + "}";
     jobObj.setDefinition(new CpsFlowDefinition(pipelineScript, true));
     WorkflowRun completedBuild = jenkins.assertBuildStatusSuccess(jobObj.scheduleBuild2(0));
@@ -247,7 +247,7 @@ public class SetParameterValueBuilderTest {
             +    "'name' : 'Foo',\n"
             +    "'value' : 'Foo4',\n"
             +    "'job' : '" + job + "',\n"
-            +    "'run' : '" + run + "'\n"
+            +    "'run' : " + run + "\n"
             +    ")\n"
             + "}";
     jobObj.setDefinition(new CpsFlowDefinition(pipelineScript, true));
@@ -275,7 +275,7 @@ public class SetParameterValueBuilderTest {
             +    "'name' : 'Foo',\n"
             +    "'value' : 'Foo4',\n"
             +    "'job' : '" + incorrectJob + "',\n"
-            +    "'run' : '" + run + "'\n"
+            +    "'run' : " + run + "\n"
             +    ")\n"
             + "}";
     jobObj.setDefinition(new CpsFlowDefinition(pipelineScript, true));
@@ -293,7 +293,7 @@ public class SetParameterValueBuilderTest {
     ParameterDefinition paramDef = new StringParameterDefinition("Foo", "Foo");
     jobObj.addProperty(new ParametersDefinitionProperty(paramDef));
     
-    String incorrectRun = "incorrect_run";
+    int incorrectRun = 0;
     String pipelineScript
             = "node {\n"
             + "  setParameterValue(\n"
@@ -301,7 +301,7 @@ public class SetParameterValueBuilderTest {
             +    "'name' : 'Foo',\n"
             +    "'value' : 'Foo4',\n"
             +    "'job' : '" + job + "',\n"
-            +    "'run' : '" + incorrectRun + "'\n"
+            +    "'run' : " + incorrectRun + "\n"
             +    ")\n"
             + "}";
     jobObj.setDefinition(new CpsFlowDefinition(pipelineScript, true));

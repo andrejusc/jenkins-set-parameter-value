@@ -1,4 +1,4 @@
 <?jelly escape-by-default='true'?>
 <div>
-    Allows setting parameter value of specified job's run.
+    Allows setting and also getting parameter value of specified job's run.
 </div>

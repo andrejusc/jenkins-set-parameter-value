@@ -35,8 +35,11 @@ public class GetParameterValueBuilder extends Builder implements SimpleBuildStep
 
   private final String name;
   private final String job;
-  private final String run;
+  private final int run;
   private final Object list;
+
+  // TODO: expose later into JSON
+  private boolean debug;
 
   /**
    * Default ctor.
@@ -45,7 +48,7 @@ public class GetParameterValueBuilder extends Builder implements SimpleBuildStep
    * @param run Run.
    */
   @DataBoundConstructor
-  public GetParameterValueBuilder(String name, String job, String run, Object list) {
+  public GetParameterValueBuilder(String name, String job, int run, Object list) {
     this.name = name;
     this.job = job;
     this.run = run;
@@ -60,7 +63,7 @@ public class GetParameterValueBuilder extends Builder implements SimpleBuildStep
     return job;
   }
 
-  public String getRun() {
+  public int getRun() {
     return run;
   }
 
@@ -74,8 +77,10 @@ public class GetParameterValueBuilder extends Builder implements SimpleBuildStep
       throws InterruptedException, IOException {
     listener.getLogger().println("GetParameterValue with parameter: " + name + ", job: " + job
         + ", and job's run: " + run);
-    listener.getLogger().println("list: " + list + (list != null ? list.getClass() : "null"));
-    listener.getLogger().println("performrun: " + performrun);
+    if (debug) {
+      listener.getLogger().println("list: " + list + (list != null ? list.getClass() : "null"));
+      listener.getLogger().println("performrun: " + performrun);
+    }
 
     Job<?, ?> jobObj = (Job<?, ?>) Jenkins.get().getItemByFullName(job);
     if (jobObj == null) {
@@ -83,14 +88,18 @@ public class GetParameterValueBuilder extends Builder implements SimpleBuildStep
       performrun.setResult(Result.FAILURE);
       return;
     }
-    listener.getLogger().println("jobObj: " + jobObj);
-    Run<?, ?> runObj = (Run<?, ?>) jobObj.getBuild(run);
+    if (debug) {
+      listener.getLogger().println("jobObj: " + jobObj);
+    }
+    Run<?, ?> runObj = (Run<?, ?>) jobObj.getBuild(String.valueOf(run));
     if (runObj == null) {
       listener.getLogger().println(String.format("ERROR: Specified job's run '%s' was not found!", run));
       performrun.setResult(Result.FAILURE);
       return;
     }
-    listener.getLogger().println("runObj: " + runObj);
+    if (debug) {
+      listener.getLogger().println("runObj: " + runObj);
+    }
     
     if (list == null) {
       listener.getLogger().println("ERROR: Specified list to return value to was null!");
