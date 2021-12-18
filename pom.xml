@@ -21,9 +21,9 @@
     <jenkins.version>2.150</jenkins.version>
     <jenkins-war.version>2.150</jenkins-war.version>
     <java.level>8</java.level>
-    <jetty.version>9.4.15.v20190215</jetty.version>
+    <jetty.version>9.4.44.v20210927</jetty.version>
     <jenkins-test-harness.version>2.46</jenkins-test-harness.version>
-    <httpclient.version>4.5.7</httpclient.version>
+    <httpclient.version>4.5.13</httpclient.version>
   </properties>
 
   <name>Set parameter value Plugin</name>
